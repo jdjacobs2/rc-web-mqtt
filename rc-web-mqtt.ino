@@ -164,34 +164,29 @@ void setup()
     request->send(LittleFS, "/index.html", String(), false, processor); });
 
   // Route to send instructions to homeauto.local
-  server.on("/report", HTTP_GET, [](AsyncWebServerRequest *request)
-            { 
+  server.on("/report", HTTP_GET,
+            [](AsyncWebServerRequest *request)
+            {
               const String device = "device";
               const String function = "function";
 
               // TODO:  handle error if no parameter (use request->hasParam)
-              if (request->hasParam(device)) {
-                const String& deviceValue = request->getParam(device)->value();
+              if (request->hasParam(device))
+              {
+                const String &deviceValue = request->getParam(device)->value();
                 Serial.println(deviceValue);
+                client.publish("rc/read", deviceValue.c_str());
               }
-              if (request->hasParam(function)) {
-                const String& functionValue = request->getParam(function)->value();
+              if (request->hasParam(function))
+              {
+                const String &functionValue = request->getParam(function)->value();
                 // function = arg(function);
                 Serial.println(functionValue);
+                client.publish("rc/read", functionValue.c_str());
               }
-              // Serial.print(deviceValue);
-              // Serial.print('   ');
-              // Serial.println(functionValue);
 
-              request->send(LittleFS, "/report.html", String(), false, processor); });
-
-  // server.onNotFound(notFound);
-
-  // following function definition not allowed before '{'
-  // void notFound(AsyncWebServerRequest *request)
-  // {
-  //   request->send(404, "text/plain", "404: Not Found");
-  // };
+              request->send(LittleFS, "/report.html", String(), false, processor);
+            });
 
   server.begin();
   Serial.println("HTTP server started");
@@ -208,10 +203,8 @@ void loop()
 
   if (!client.loop())
     client.connect("ESP8266RC");
-  // Initialize LittleFS
 
-  // Serial.println('In main loop before client.publish');
-  client.publish("rc/read", "From ESP8622");
+  // client.publish("rc/read", "From ESP8622");
 
   if (mySwitch.available())
   {
