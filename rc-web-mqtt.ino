@@ -1,5 +1,7 @@
 // https://github.com/juarezefren/mecatronica/blob/master/Ultrasonico_Node.ino
 // https://www.youtube.com/watch?v=1BllzhJKo9o
+// https://microcontrollerslab.com/esp8266-nodemcu-web-server-using-littlefs-flash-file-system/#Creating_HTML_file
+// https://microcontrollerslab.com/esp32-esp8266-web-server-input-data-html-forms/#Example_1_Arduino_Sketch_for_Input_data_to_HTML_form_web_server
 
 #include <ESP8266WiFi.h>  // Enables the ESP8266 to connect to the local network (via WiFi)
 #include <PubSubClient.h> // Allows us to connect to, and publish to the MQTT broker
@@ -8,7 +10,11 @@
 // #include <ESP8266WebServer.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
-// Create a webserver object that listens for HTTP request on port 80
+#include <FS.h>
+#include <LittleFS.h>
+
+// Create AsyncWebServer object
+AsyncWebServer server(80);
 
 RCSwitch mySwitch = RCSwitch(); // Initialize RCSwitch (radio freq) library
 
@@ -113,11 +119,22 @@ void reconnect()
   }
 }
 
-AsyncWebServer server(80);
-void notFound(AsyncWebServerRequest *request)
+// Replaces placeholder with LED state value
+String processor(const String &var)
 {
-  request->send(404, "text/plain", "404: Not Found");
-};
+  Serial.println(var);
+  // if(var == "GPIO_STATE"){
+  //   if(digitalRead(ledPin)){
+  //     ledState = "OFF";
+  //   }
+  //   else{
+  //     ledState = "ON";
+  //   }
+  //   Serial.print(ledState);
+  //   return ledState;
+  // }
+  return String();
+}
 
 void setup()
 {
@@ -128,38 +145,73 @@ void setup()
   Serial.print("Location: ");
   Serial.println(location);
 
+  // Initialze LittleFS
+  if (!LittleFS.begin())
+  {
+    Serial.println("An error has occurred while mounting LittleFS");
+    return;
+  }
+
   // Setup MQTT
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
   Serial.println("");
 
+  // Setup HTTP server root route
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            { request->send(200, "text/plain", "Hello World AsyncWebServer"); });
+            {
+    // processor is used for template substitution
+    request->send(LittleFS, "/index.html", String(), false, processor); });
 
-  // Setup HTTP server
-  server.onNotFound(notFound);
+  // Route to send instructions to homeauto.local
+  server.on("/report", HTTP_GET, [](AsyncWebServerRequest *request)
+            { 
+              const String device = "device";
+              const String function = "function";
+
+              // TODO:  handle error if no parameter (use request->hasParam)
+              if (request->hasParam(device)) {
+                const String& deviceValue = request->getParam(device)->value();
+                Serial.println(deviceValue);
+              }
+              if (request->hasParam(function)) {
+                const String& functionValue = request->getParam(function)->value();
+                // function = arg(function);
+                Serial.println(functionValue);
+              }
+              // Serial.print(deviceValue);
+              // Serial.print('   ');
+              // Serial.println(functionValue);
+
+              request->send(LittleFS, "/report.html", String(), false, processor); });
+
+  // server.onNotFound(notFound);
+
+  // following function definition not allowed before '{'
+  // void notFound(AsyncWebServerRequest *request)
+  // {
+  //   request->send(404, "text/plain", "404: Not Found");
+  // };
+
   server.begin();
   Serial.println("HTTP server started");
-
-  SPIFFS.begin();
 
   mySwitch.enableReceive(4); // Receiver on interrupt 0 => that is pin #2
 }
 
 void loop()
 {
+  if (!client.connected()) // Establish MQTT listner
+  {
+    reconnect();
+  }
 
-  // server.handleClient(); // Listen for HTTP requests
-
-  // if (!client.connected())   // Establish MQTT listner
-  // {
-  //    reconnect();
-  // }
-  // if (!client.loop())
-  //   client.connect("ESP8266RC");
+  if (!client.loop())
+    client.connect("ESP8266RC");
+  // Initialize LittleFS
 
   // Serial.println('In main loop before client.publish');
-  // client.publish("rc/read", "From ESP8622");
+  client.publish("rc/read", "From ESP8622");
 
   if (mySwitch.available())
   {

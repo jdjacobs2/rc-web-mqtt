@@ -6,48 +6,42 @@
     <meta name="viewport" content="width=k, initial-scale=1.0" />
     <title>Document</title>
     <style>
-      body {
-        background-color: lightcyan;
-        // width:50%;
-        text-align: center;
-    }
-      div {
-        margin-bottom: 30px;
-        color:blue;
+        body {
+          background-color: lightcyan;
+          // width:50%;
+          text-align: center;
       }
-      input, button {
-        color: blue;
-        background-color:floralwhite;
-      }
-      button {
-        background-color:lightgray;
-        width: 100px;
-        height: 50px;
-        font-size: 1.5rem;
+        div {
+          margin-bottom: 30px;
+          color:blue;
+        }
+        input, button {
+          color: blue;
+          background-color:floralwhite;
+        }
+        button {
+          background-color:lightgray;
+          width: 100px;
+          height: 50px;
+          font-size: 1.5rem;
     </style>
   </head>
   <body>
-    <main >
+    <main>
       <h2>Remote Information</h2>
-      <form action="10.0.0.143" method="post"></form>
-      <div>
-        <label for="device">Enter Device Name (i.e., Fan 1)</label>
-        <input
-          type="text"
-          id="device"
-          name="device"
-          autofocus
-        />
-      </div>
-      <div>
-        <label for="function">Enter function (i.e., fan speed 1)</label>
-        <input type="text" id="function" name="function"  />
-      </div>
-      <div>
-        <button type="submit">Submit</button> 
-      </div>
-
-      
+      <form action="/report" method="GET">
+        <div>
+          <label for="device">Enter Device Name (i.e., Fan 1)</label>
+          <input type="text" id="device" name="device" autofocus />
+        </div>
+        <div>
+          <label for="function">Enter function (i.e., fan speed 1)</label>
+          <input type="text" id="function" name="function" />
+        </div>
+        <div>
+          <input type="submit" />
+        </div>
+      </form>
     </main>
   </body>
 </html>
