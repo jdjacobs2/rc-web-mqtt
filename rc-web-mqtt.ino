@@ -12,6 +12,7 @@
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
 #include <LittleFS.h>
+#include <ArduinoJson.h>
 
 // Create AsyncWebServer object
 AsyncWebServer server(80);
@@ -26,6 +27,8 @@ const char *ssid = "windsong";
 const char *wifi_password = "fubsey00";
 long now;
 long lastTime;
+char deviceBuf[50]; // Initilize buffer to hold device name
+char functionBuf[50];
 
 // Don't change the function below. This functions connects your ESP8266 to your router
 void setup_wifi()
@@ -175,13 +178,18 @@ void setup()
               {
                 const String &deviceValue = request->getParam(device)->value();
                 Serial.println(deviceValue);
+                deviceValue.toCharArray(deviceBuf, 50);
+                Serial.print("device in deviceBuf:  ");
+                Serial.println(deviceBuf);
                 client.publish("rc/read", deviceValue.c_str());
               }
               if (request->hasParam(function))
               {
                 const String &functionValue = request->getParam(function)->value();
-                // function = arg(function);
                 Serial.println(functionValue);
+                functionValue.toCharArray(functionBuf, 50);
+                Serial.print("function in functionBuf:  ");
+                Serial.println(functionBuf);
                 client.publish("rc/read", functionValue.c_str());
               }
 
@@ -192,6 +200,14 @@ void setup()
   Serial.println("HTTP server started");
 
   mySwitch.enableReceive(4); // Receiver on interrupt 0 => that is pin #2
+
+  // Setup mDNS
+  if (!MDNS.begin("remotecontrol"))
+  { // Start the mDNS responder for esp8266.local
+    Serial.println("Error setting up MDNS responder!");
+  }
+  Serial.println("mDNS responder started");
+  MDNS.addService("http", "tcp", 80);
 }
 
 void loop()
@@ -201,15 +217,41 @@ void loop()
     reconnect();
   }
 
+  // Following necessary for subscribing and maintain connection
   if (!client.loop())
     client.connect("ESP8266RC");
-
-  // client.publish("rc/read", "From ESP8622");
 
   if (mySwitch.available())
   {
     Serial.println("my switch is available");
     output(mySwitch.getReceivedValue(), mySwitch.getReceivedBitlength(), mySwitch.getReceivedDelay(), mySwitch.getReceivedRawdata(), mySwitch.getReceivedProtocol());
+
+    // TODO:  mqtt device, function and code
+    char recvValueBuf[100];
+    // Serial.print("received value:  ");
+    // Serial.println(mySwitch.getReceivedValue());
+    sprintf(recvValueBuf, "%u", mySwitch.getReceivedValue());
+    // char msgBuf[150];
+    Serial.print("In mySwitch value of deviceBuf:  ");
+    // Serial.println(typeid(deviceBuf).name());
+    Serial.println(deviceBuf);
+    // sprintf(msgBuf, "%s  %s  %u", deviceBuf, functionBuf, mySwitch.getReceivedValue());
+    // sprintf(msgBuf, '{"device":"%c", "function":"%c", "code":"%u"}',
+    // (char *)deviceBuf, (char *)functionBuf, mySwitch.getReceivedValue());
+    const int capacity = JSON_OBJECT_SIZE(5);
+    StaticJsonDocument<capacity> msg;
+    msg["device"] = deviceBuf;
+    msg["function"] = functionBuf;
+    msg["code"] = mySwitch.getReceivedValue();
+
+    char msgBuf[150];
+    serializeJson(msg, msgBuf);
+    Serial.print("msg:  ");
+    // serializeJson(msg, Serial);
+    Serial.println(msgBuf);
+    // Serial.println(msg);
+    client.publish("rc/read", msgBuf);
+
     mySwitch.resetAvailable();
   }
 
@@ -222,49 +264,3 @@ void loop()
 
   // delay(1000);
 }
-
-// bool handleFileRead(String path)
-// { // send the right file to the client (if it exists)
-//   Serial.println("handleFileRead: " + path);
-//   if (path.endsWith("/"))
-//     path += "index.html"; // If a folder is requested, send the index file
-//   Serial.print("path is:  ");
-//   Serial.println(path);
-//   String contentType = getContentType(path); // Get the MIME type
-//   String pathWithGz = path + ".gz";
-//   if (SPIFFS.exists(pathWithGz) || SPIFFS.exists(path))
-//   {                                                     // If the file exists, either as a compressed archive, or normal
-//     if (SPIFFS.exists(pathWithGz))                      // If there's a compressed version available
-//       path += ".gz";                                    // Use the compressed verion
-//     File file = SPIFFS.open(path, "r");                 // Open the file
-//     size_t sent = server.streamFile(file, contentType); // Send it to the client
-//     file.close();                                       // Close the file again
-//     Serial.println(String("\tSent file: ") + path);
-//     return true;
-//   }
-//   Serial.println(String("\tFile Not Found: ") + path); // If the file doesn't exist, return false
-//   return false;
-// }
-
-// String getContentType(String filename)
-// { // convert the file extension to the MIME type
-//   if (filename.endsWith(".html"))
-//     return "text/html";
-//   else if (filename.endsWith(".css"))
-//     return "text/css";
-//   else if (filename.endsWith(".js"))
-//     return "application/javascript";
-//   else if (filename.endsWith(".ico"))
-//     return "image/x-icon";
-//   else if (filename.endsWith(".gz"))
-//     return "application/x-gzip";
-//   return "text/plain";
-// }
-
-// void handleRoot() {
-//   server.send(200, "text/plain", "Hello world!");   // Send HTTP status 200 (Ok) and send some text to the browser/client
-// }
-
-// void handleNotFound(){
-//   server.send(404, "text/plain", "404: Not found"); // Send HTTP status 404 (Not Found) when there's no handler for the URI in the request
-// }

@@ -31,6 +31,7 @@
                 "/home/jim/Arduino/libraries/ESPAsyncWebServer/src",
                 "/home/jim/.arduino15/packages/esp8266/hardware/esp8266/3.0.2/libraries/Hash/src",
                 "/home/jim/.arduino15/packages/esp8266/hardware/esp8266/3.0.2/libraries/LittleFS/src",
+                "/home/jim/Arduino/libraries/ArduinoJson/src",
                 "/home/jim/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.0.4-gcc10.3-1757bed/xtensa-lx106-elf/include/c++/10.3.0",
                 "/home/jim/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.0.4-gcc10.3-1757bed/xtensa-lx106-elf/include/c++/10.3.0/xtensa-lx106-elf",
                 "/home/jim/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.0.4-gcc10.3-1757bed/xtensa-lx106-elf/include/c++/10.3.0/backward",
