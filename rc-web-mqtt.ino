@@ -126,16 +126,6 @@ void reconnect()
 String processor(const String &var)
 {
   Serial.println(var);
-  // if(var == "GPIO_STATE"){
-  //   if(digitalRead(ledPin)){
-  //     ledState = "OFF";
-  //   }
-  //   else{
-  //     ledState = "ON";
-  //   }
-  //   Serial.print(ledState);
-  //   return ledState;
-  // }
   return String();
 }
 
@@ -228,16 +218,9 @@ void loop()
 
     // TODO:  mqtt device, function and code
     char recvValueBuf[100];
-    // Serial.print("received value:  ");
-    // Serial.println(mySwitch.getReceivedValue());
     sprintf(recvValueBuf, "%u", mySwitch.getReceivedValue());
-    // char msgBuf[150];
     Serial.print("In mySwitch value of deviceBuf:  ");
-    // Serial.println(typeid(deviceBuf).name());
     Serial.println(deviceBuf);
-    // sprintf(msgBuf, "%s  %s  %u", deviceBuf, functionBuf, mySwitch.getReceivedValue());
-    // sprintf(msgBuf, '{"device":"%c", "function":"%c", "code":"%u"}',
-    // (char *)deviceBuf, (char *)functionBuf, mySwitch.getReceivedValue());
     const int capacity = JSON_OBJECT_SIZE(5);
     StaticJsonDocument<capacity> msg;
     msg["device"] = deviceBuf;
@@ -251,6 +234,9 @@ void loop()
     Serial.println(msgBuf);
     // Serial.println(msg);
     client.publish("rc/read", msgBuf);
+
+    // TODO: must find how to send to client
+    // request->send(LittleFS, "/index.html", String(), false, processor); 
 
     mySwitch.resetAvailable();
   }
