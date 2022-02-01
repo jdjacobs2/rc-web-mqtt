@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=1BllzhJKo9o
 // https://microcontrollerslab.com/esp8266-nodemcu-web-server-using-littlefs-flash-file-system/#Creating_HTML_file
 // https://microcontrollerslab.com/esp32-esp8266-web-server-input-data-html-forms/#Example_1_Arduino_Sketch_for_Input_data_to_HTML_form_web_server
+// https://randomnerdtutorials.com/esp32-websocket-server-arduino/
 
 #include <ESP8266WiFi.h>  // Enables the ESP8266 to connect to the local network (via WiFi)
 #include <PubSubClient.h> // Allows us to connect to, and publish to the MQTT broker
@@ -16,6 +17,7 @@
 
 // Create AsyncWebServer object
 AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
 
 RCSwitch mySwitch = RCSwitch(); // Initialize RCSwitch (radio freq) library
 
@@ -129,6 +131,50 @@ String processor(const String &var)
   return String();
 }
 
+
+
+// Setup HTTP server root route
+void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
+{
+  AwsFrameInfo *info = (AwsFrameInfo *)arg;
+  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
+  {
+    data[len] = 0;
+    if (strcmp((char *)data, "toggle") == 0)
+    {
+      // ledState = !ledState;
+      // notifyClients();
+    }
+  }
+}
+
+// receiving WebSocket message
+void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+{
+  if (type == WS_EVT_CONNECT)
+  {
+    Serial.printf("ws[%s][%u] connect\n", ws->url(), client->id());
+    client->printf("Hello Client %u :)", client->id());
+    client->ping();
+  }
+  else if (type == WS_EVT_DISCONNECT)
+  {
+    Serial.printf("ws[%s][%u] disconnect\n", ws->url(), client->id());
+  }
+  else if (type == WS_EVT_ERROR)
+  {
+    Serial.printf("ws[%s][%u] error(%u): %s\n", ws->url(), client->id(), *((uint16_t *)arg), (char *)data);
+  }
+  else if (type == WS_EVT_PONG)
+  {
+    Serial.printf("ws[%s][%u] pong[%u]: %s\n", ws->url(), client->id(), len, (len) ? (char *)data : "");
+  }
+  else if (type == WS_EVT_DATA)
+  {
+    handleWebSocketMessage(arg, data, len);
+  }
+}
+
 void setup()
 {
   // Setup wifi
@@ -150,41 +196,45 @@ void setup()
   client.setCallback(callback);
   Serial.println("");
 
-  // Setup HTTP server root route
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
-    // processor is used for template substitution
-    request->send(LittleFS, "/index.html", String(), false, processor); });
-
   // Route to send instructions to homeauto.local
-  server.on("/report", HTTP_GET,
-            [](AsyncWebServerRequest *request)
-            {
-              const String device = "device";
-              const String function = "function";
+  // server.on("/report", HTTP_GET,
+  //           [](AsyncWebServerRequest *request)
+  //           {
+  //             const String device = "device";
+  //             const String function = "function";
 
-              // TODO:  handle error if no parameter (use request->hasParam)
-              if (request->hasParam(device))
-              {
-                const String &deviceValue = request->getParam(device)->value();
-                Serial.println(deviceValue);
-                deviceValue.toCharArray(deviceBuf, 50);
-                Serial.print("device in deviceBuf:  ");
-                Serial.println(deviceBuf);
-                client.publish("rc/read", deviceValue.c_str());
-              }
-              if (request->hasParam(function))
-              {
-                const String &functionValue = request->getParam(function)->value();
-                Serial.println(functionValue);
-                functionValue.toCharArray(functionBuf, 50);
-                Serial.print("function in functionBuf:  ");
-                Serial.println(functionBuf);
-                client.publish("rc/read", functionValue.c_str());
-              }
+  //             // TODO:  handle error if no parameter (use request->hasParam)
+  //             if (request->hasParam(device))
+  //             {
+  //               const String &deviceValue = request->getParam(device)->value();
+  //               Serial.println(deviceValue);
+  //               deviceValue.toCharArray(deviceBuf, 50);
+  //               Serial.print("device in deviceBuf:  ");
+  //               Serial.println(deviceBuf);
+  //               client.publish("rc/read", deviceValue.c_str());
+  //             }
+  //             if (request->hasParam(function))
+  //             {
+  //               const String &functionValue = request->getParam(function)->value();
+  //               Serial.println(functionValue);
+  //               functionValue.toCharArray(functionBuf, 50);
+  //               Serial.print("function in functionBuf:  ");
+  //               Serial.println(functionBuf);
+  //               client.publish("rc/read", functionValue.c_str());
+  //             }
 
-              request->send(LittleFS, "/report.html", String(), false, processor);
-            });
+  //             request->send(LittleFS, "/report.html", String(), false, processor);
+  //           });
+
+
+server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+          {
+    // processor is used for template substitution
+    request->send(LittleFS, "/index.html", String(), false); });
+
+
+  ws.onEvent(onWsEvent);
+  server.addHandler(&ws);
 
   server.begin();
   Serial.println("HTTP server started");
@@ -236,7 +286,7 @@ void loop()
     client.publish("rc/read", msgBuf);
 
     // TODO: must find how to send to client
-    // request->send(LittleFS, "/index.html", String(), false, processor); 
+    // request->send(LittleFS, "/index.html", String(), false, processor);
 
     mySwitch.resetAvailable();
   }

@@ -8,9 +8,8 @@
     <style>
         body {
           background-color: lightcyan;
-          // width:50%;
           text-align: center;
-      }
+        }
         div {
           margin-bottom: 30px;
           color:blue;
@@ -24,24 +23,30 @@
           width: 100px;
           height: 50px;
           font-size: 1.5rem;
+        }
     </style>
   </head>
   <body>
     <main>
       <h2>Remote Information</h2>
-      <form action="/report" method="GET">
-        <div>
-          <label for="device">Enter Device Name (i.e., Fan 1)</label>
-          <input type="text" id="device" name="device" autofocus />
-        </div>
-        <div>
-          <label for="function">Enter function (i.e., fan speed 1)</label>
-          <input type="text" id="function" name="function" />
-        </div>
-        <div>
-          <input type="submit" />
-        </div>
-      </form>
+      <div id="form">
+        <form id="form-msg: action="#" method="GET">
+          <div>
+            <label for="device">Enter Device Name (i.e., Fan 1)</label>
+            <input type="text" id="device" name="device" autofocus />
+          </div>
+          <div>
+            <label for="function">Enter function (i.e., fan speed 1)</label>
+            <input type="text" id="function" name="function" />
+          </div>
+          <div>
+            <button type="submit" id="send" >Send</button>
+            <button type="button" id=close>Close Connection</button>
+          </div>
+        </form>
+      </div>
+      <div id="listMsg"></div>
     </main>
+    <script src="app.js"></script>
   </body>
 </html>
