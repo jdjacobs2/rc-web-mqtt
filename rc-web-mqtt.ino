@@ -131,8 +131,6 @@ String processor(const String &var)
   return String();
 }
 
-
-
 // Setup HTTP server root route
 void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 {
@@ -151,6 +149,7 @@ void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
 // receiving WebSocket message
 void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
+  Serial.println('in onWsEvent');
   if (type == WS_EVT_CONNECT)
   {
     Serial.printf("ws[%s][%u] connect\n", ws->url(), client->id());
@@ -226,13 +225,17 @@ void setup()
   //             request->send(LittleFS, "/report.html", String(), false, processor);
   //           });
 
-
-server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-          {
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
     // processor is used for template substitution
     request->send(LittleFS, "/index.html", String(), false); });
 
+  server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request)
+            {
+    // processor is used for template substitution
+    request->send(LittleFS, "/app.js", String(), false); });
 
+  // setup websockets server
   ws.onEvent(onWsEvent);
   server.addHandler(&ws);
 
