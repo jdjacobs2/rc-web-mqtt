@@ -1,6 +1,7 @@
 var socket;
 var submitButton;
 var socketStatus;
+var listMsgs;
 
 const submit = function (e) {
   e.preventDefault();
@@ -30,29 +31,33 @@ window.onload = function () {
   console.log('in onload');
   document.getElementById('submit').addEventListener('click', submit);
   // var txtMsg = document.getElementById('msg');
-  // var listMsgs = document.getElementById('msgs');
+  listMsgs = document.getElementById('msgs');
   socketStatus = document.getElementById('status');
   var btnClose = document.getElementById('close');
   socket = new WebSocket("ws://10.0.0.26/ws");
+  // socket.onopen = onOpen;
+  // socket.onclose = onClose;
+  socket.onmessage = onMessage
 
   // submitButton.addEventListener('click', submit);
 };
 
-socket.onopen = function (event) {
-  socketStatus.innerHTML = 'Connected to: ' + event.currentTarget.URL;
-  socketStatus.className = 'open';
-};
+// socket.onopen = function (event) {
+//   socketStatus.innerHTML = 'Connected to: ' + event.currentTarget.URL;
+//   socketStatus.className = 'open';
+// };
 
 // socket.onerror = function (error) {
 //   console.log('WebSocket error: ' + error);
 // };
 
 
-// socket.onmessage = function (event) {
-//   var msg = event.data;
-//   listMsgs.innerHTML +=
-//     '<li class="received"><span>Received:</span>' + msg + '</li>';
-// };
+onMessage = function (event) {
+  console.log("in onmessage event.date =  ", event.data);
+  var msg = event.data;
+  listMsgs.innerHTML +=
+    '<li class="received"><span>Received:</span>' + msg + '</li>';
+};
 
 // socket.onclose = function (event) {
 //   socketStatus.innerHTML = 'Disconnected from the WebSocket.';

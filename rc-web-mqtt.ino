@@ -170,7 +170,20 @@ void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *client, AwsEventType ty
   }
   else if (type == WS_EVT_DATA)
   {
-    handleWebSocketMessage(arg, data, len);
+    // handleWebSocketMessage(arg, data, len);
+    Serial.println("in onWsEvent WS_TEXT");
+    String msg = "";
+    AwsFrameInfo *info = (AwsFrameInfo *)arg;
+    if (info->opcode == WS_TEXT)
+    {
+      for (size_t i = 0; i < info->len; i++)
+      {
+        msg += (char)data[i];
+      }
+    }
+    Serial.printf("%s\n", msg.c_str());
+    if (info->opcode == WS_TEXT)
+      client->text("I got your text");
   }
 }
 
@@ -194,36 +207,6 @@ void setup()
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
   Serial.println("");
-
-  // Route to send instructions to homeauto.local
-  // server.on("/report", HTTP_GET,
-  //           [](AsyncWebServerRequest *request)
-  //           {
-  //             const String device = "device";
-  //             const String function = "function";
-
-  //             // TODO:  handle error if no parameter (use request->hasParam)
-  //             if (request->hasParam(device))
-  //             {
-  //               const String &deviceValue = request->getParam(device)->value();
-  //               Serial.println(deviceValue);
-  //               deviceValue.toCharArray(deviceBuf, 50);
-  //               Serial.print("device in deviceBuf:  ");
-  //               Serial.println(deviceBuf);
-  //               client.publish("rc/read", deviceValue.c_str());
-  //             }
-  //             if (request->hasParam(function))
-  //             {
-  //               const String &functionValue = request->getParam(function)->value();
-  //               Serial.println(functionValue);
-  //               functionValue.toCharArray(functionBuf, 50);
-  //               Serial.print("function in functionBuf:  ");
-  //               Serial.println(functionBuf);
-  //               client.publish("rc/read", functionValue.c_str());
-  //             }
-
-  //             request->send(LittleFS, "/report.html", String(), false, processor);
-  //           });
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             {
