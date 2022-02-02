@@ -158,17 +158,19 @@ void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *client, AwsEventType ty
       }
       msg[info->len] = '\0';
     }
-    Serial.printf("msg = %s\n", msg);
+    // Serial.printf("msg = %s\n", msg);
     char *token;
     token = strtok(msg, ",");
     strcpy(deviceBuf, token);
     token = strtok(NULL, ",");
     strcpy(functionBuf, token);
-    Serial.printf("device = %s; function = %s", deviceBuf, functionBuf);
 
-        // Serial.printf("%s\n", msg.toCharArray(msgBuf, 100));
-        if (info->opcode == WS_TEXT)
-            client->text("I got your text");
+    if (info->opcode == WS_TEXT)
+    {
+      sprintf(msg, "device is %s and function is %s",
+              deviceBuf, functionBuf);
+      client->text(msg);
+    }
   }
 }
 
