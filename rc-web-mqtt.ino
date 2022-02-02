@@ -8,7 +8,6 @@
 #include <PubSubClient.h> // Allows us to connect to, and publish to the MQTT broker
 #include <ESP8266mDNS.h>
 #include <RCSwitch.h>
-// #include <ESP8266WebServer.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <FS.h>
@@ -31,6 +30,7 @@ long now;
 long lastTime;
 char deviceBuf[50]; // Initilize buffer to hold device name
 char functionBuf[50];
+char msgBuf[100];
 
 // Don't change the function below. This functions connects your ESP8266 to your router
 void setup_wifi()
@@ -54,8 +54,7 @@ void setup_wifi()
 // MQTT
 // Make sure to update this for your own MQTT Broker!
 const char *mqtt_server = "homeauto.local";
-// const char *mqtt_topic = "rc/read";
-// The client id identifies the ESP8266 device. Think of it a bit like a hostname (Or just a name, like Greg).
+// The client id identifies the ESP8266 device
 const char *clientID = "ESP8266RC";
 
 // Initialise the WiFi and MQTT Client objects at 26 in derived
@@ -81,13 +80,10 @@ void callback(String topic, byte *message, unsigned int length)
     Serial.print((char)message[i]);
     messageTemp += (char)message[i];
   }
-  // Serial.println();
 }
 
-// Feel free to add more if statements to control more GPIOs with MQTT
-
 // This functions reconnects your ESP8266 to your MQTT broker
-// Change the function below if you want to subscribe to more topics with your ESP8266
+// Change the function below if you want to subscribe to more topics
 void reconnect()
 {
   // Loop until we're reconnected
@@ -110,7 +106,7 @@ void reconnect()
     {
       Serial.println("connected");
       // Subscribe or resubscribe to a topic
-      // You can subscribe to more topics (to control more LEDs in this example)
+      // You can subscribe to more topics
       client.subscribe("rc/write");
     }
     else
@@ -120,28 +116,6 @@ void reconnect()
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
-    }
-  }
-}
-
-// Replaces placeholder with LED state value
-String processor(const String &var)
-{
-  Serial.println(var);
-  return String();
-}
-
-// Setup HTTP server root route
-void handleWebSocketMessage(void *arg, uint8_t *data, size_t len)
-{
-  AwsFrameInfo *info = (AwsFrameInfo *)arg;
-  if (info->final && info->index == 0 && info->len == len && info->opcode == WS_TEXT)
-  {
-    data[len] = 0;
-    if (strcmp((char *)data, "toggle") == 0)
-    {
-      // ledState = !ledState;
-      // notifyClients();
     }
   }
 }
@@ -169,21 +143,32 @@ void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *client, AwsEventType ty
     Serial.printf("ws[%s][%u] pong[%u]: %s\n", ws->url(), client->id(), len, (len) ? (char *)data : "");
   }
   else if (type == WS_EVT_DATA)
+  // TODO:  Must include code to repaint index.html for new device and function
+  // Assumes all data comes in one frame.
   {
-    // handleWebSocketMessage(arg, data, len);
     Serial.println("in onWsEvent WS_TEXT");
-    String msg = "";
+    // String msg = "";
+    char msg[100];
     AwsFrameInfo *info = (AwsFrameInfo *)arg;
     if (info->opcode == WS_TEXT)
     {
       for (size_t i = 0; i < info->len; i++)
       {
-        msg += (char)data[i];
+        msg[i] = (char)data[i];
       }
+      msg[info->len] = '\0';
     }
-    Serial.printf("%s\n", msg.c_str());
-    if (info->opcode == WS_TEXT)
-      client->text("I got your text");
+    Serial.printf("msg = %s\n", msg);
+    char *token;
+    token = strtok(msg, ",");
+    strcpy(deviceBuf, token);
+    token = strtok(NULL, ",");
+    strcpy(functionBuf, token);
+    Serial.printf("device = %s; function = %s", deviceBuf, functionBuf);
+
+        // Serial.printf("%s\n", msg.toCharArray(msgBuf, 100));
+        if (info->opcode == WS_TEXT)
+            client->text("I got your text");
   }
 }
 
@@ -209,14 +194,10 @@ void setup()
   Serial.println("");
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
-    // processor is used for template substitution
-    request->send(LittleFS, "/index.html", String(), false); });
+            { request->send(LittleFS, "/index.html", String(), false); });
 
   server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
-    // processor is used for template substitution
-    request->send(LittleFS, "/app.js", String(), false); });
+            { request->send(LittleFS, "/app.js", String(), false); });
 
   // setup websockets server
   ws.onEvent(onWsEvent);
@@ -233,7 +214,6 @@ void setup()
     Serial.println("Error setting up MDNS responder!");
   }
   Serial.println("mDNS responder started");
-  MDNS.addService("http", "tcp", 80);
 }
 
 void loop()
@@ -249,12 +229,11 @@ void loop()
 
   if (mySwitch.available())
   {
-    Serial.println("my switch is available");
-    output(mySwitch.getReceivedValue(), mySwitch.getReceivedBitlength(), mySwitch.getReceivedDelay(), mySwitch.getReceivedRawdata(), mySwitch.getReceivedProtocol());
+    // output(mySwitch.getReceivedValue(), mySwitch.getReceivedBitlength(), mySwitch.getReceivedDelay(), mySwitch.getReceivedRawdata(), mySwitch.getReceivedProtocol());
 
     // TODO:  mqtt device, function and code
     char recvValueBuf[100];
-    sprintf(recvValueBuf, "%u", mySwitch.getReceivedValue());
+    sprintf(recvValueBuf, "%u", mySwitch.getReceivedValue()); // decimal value
     Serial.print("In mySwitch value of deviceBuf:  ");
     Serial.println(deviceBuf);
     const int capacity = JSON_OBJECT_SIZE(5);

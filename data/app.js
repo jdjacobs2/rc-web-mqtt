@@ -10,7 +10,7 @@ const submit = function (e) {
   // Recovering the message of the textarea.
   let msg =
     document.getElementById('device').value +
-    '&' +
+    ',' +
     document.getElementById('function').value;
 
   // Sending the msg via WebSocket.
@@ -35,17 +35,17 @@ window.onload = function () {
   socketStatus = document.getElementById('status');
   var btnClose = document.getElementById('close');
   socket = new WebSocket("ws://10.0.0.26/ws");
-  // socket.onopen = onOpen;
-  // socket.onclose = onClose;
+  socket.onopen = onOpen;
+  socket.onclose = onClose;
   socket.onmessage = onMessage
 
   // submitButton.addEventListener('click', submit);
 };
 
-// socket.onopen = function (event) {
-//   socketStatus.innerHTML = 'Connected to: ' + event.currentTarget.URL;
-//   socketStatus.className = 'open';
-// };
+onOpen = function (event) {
+  socketStatus.innerHTML = 'Connected to: ' + event.currentTarget.URL;
+  socketStatus.className = 'open';
+};
 
 // socket.onerror = function (error) {
 //   console.log('WebSocket error: ' + error);
@@ -59,7 +59,7 @@ onMessage = function (event) {
     '<li class="received"><span>Received:</span>' + msg + '</li>';
 };
 
-// socket.onclose = function (event) {
-//   socketStatus.innerHTML = 'Disconnected from the WebSocket.';
-//   socketStatus.className = 'closed';
-// };
+onClose = function (event) {
+  socketStatus.innerHTML = 'Disconnected from the WebSocket.';
+  socketStatus.className = 'closed';
+};
