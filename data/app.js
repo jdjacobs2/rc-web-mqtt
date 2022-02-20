@@ -1,7 +1,22 @@
-var socket;
 var submitButton;
 var socketStatus;
 var listMsgs;
+var content;
+
+const socket = new WebSocket('ws://10.0.0.20/ws');
+
+
+const message = function (event) {
+  console.log('in onmessage event.data =  ', event.data);
+  var msg = event.data;
+  console.log('msg in onMessage = ', msg);
+  input.innerHTML = msg;
+  // listMsgs.innerHTML =
+  //   '<li class="received Msg"><span>Received:</span>' + msg + '</li>';
+  //   '<p> msg </p>';
+};
+
+socket.addEventListener('message', message);
 
 const submit = function (e) {
   e.preventDefault();
@@ -28,16 +43,17 @@ const submit = function (e) {
 
 window.onload = function () {
   // get the references of the page elements.
-  console.log('in onload');
+  // console.log('in onload');
   document.getElementById('submit').addEventListener('click', submit);
   // var txtMsg = document.getElementById('msg');
   listMsgs = document.getElementById('msgs');
+  content = document.getElementById('content');
   socketStatus = document.getElementById('status');
   var btnClose = document.getElementById('close');
-  socket = new WebSocket("ws://10.0.0.26/ws");
+  // socket = new WebSocket("ws://10.0.0.26/ws");
   socket.onopen = onOpen;
   socket.onclose = onClose;
-  socket.onmessage = onMessage
+  // socket.onmessage = onMessage
 
   // submitButton.addEventListener('click', submit);
 };
@@ -52,14 +68,9 @@ onOpen = function (event) {
 // };
 
 
-onMessage = function (event) {
-  console.log("in onmessage event.date =  ", event.data);
-  var msg = event.data;
-  listMsgs.innerHTML +=
-    '<li class="received"><span>Received:</span>' + msg + '</li>';
-};
 
 onClose = function (event) {
+  Serial.println('closed websocket');
   socketStatus.innerHTML = 'Disconnected from the WebSocket.';
   socketStatus.className = 'closed';
 };

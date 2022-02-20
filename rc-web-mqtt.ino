@@ -3,6 +3,7 @@
 // https://microcontrollerslab.com/esp8266-nodemcu-web-server-using-littlefs-flash-file-system/#Creating_HTML_file
 // https://microcontrollerslab.com/esp32-esp8266-web-server-input-data-html-forms/#Example_1_Arduino_Sketch_for_Input_data_to_HTML_form_web_server
 // https://randomnerdtutorials.com/esp32-websocket-server-arduino/
+// https://www.luisllamas.es/comunicar-una-pagina-web-con-asyncwebsockets-en-el-esp8266/
 
 #include <ESP8266WiFi.h>  // Enables the ESP8266 to connect to the local network (via WiFi)
 #include <PubSubClient.h> // Allows us to connect to, and publish to the MQTT broker
@@ -17,6 +18,7 @@
 // Create AsyncWebServer object
 AsyncWebServer server(80);
 AsyncWebSocket ws("/ws");
+AsyncWebSocketClient *wsClientGlobal;
 
 RCSwitch mySwitch = RCSwitch(); // Initialize RCSwitch (radio freq) library
 
@@ -121,26 +123,26 @@ void reconnect()
 }
 
 // receiving WebSocket message
-void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *wsClient, AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
   Serial.println('in onWsEvent');
   if (type == WS_EVT_CONNECT)
   {
-    Serial.printf("ws[%s][%u] connect\n", ws->url(), client->id());
-    client->printf("Hello Client %u :)", client->id());
-    client->ping();
+    Serial.printf("ws[%s][%u] connect\n", ws->url(), wsClient->id());
+    // wsClient->printf("Hello Client %u", wsClient->id());
+    wsClientGlobal = wsClient;
   }
   else if (type == WS_EVT_DISCONNECT)
   {
-    Serial.printf("ws[%s][%u] disconnect\n", ws->url(), client->id());
+    Serial.printf("ws[%s][%u] disconnect\n", ws->url(), wsClient->id());
   }
   else if (type == WS_EVT_ERROR)
   {
-    Serial.printf("ws[%s][%u] error(%u): %s\n", ws->url(), client->id(), *((uint16_t *)arg), (char *)data);
+    Serial.printf("ws[%s][%u] error(%u): %s\n", ws->url(), wsClient->id(), *((uint16_t *)arg), (char *)data);
   }
   else if (type == WS_EVT_PONG)
   {
-    Serial.printf("ws[%s][%u] pong[%u]: %s\n", ws->url(), client->id(), len, (len) ? (char *)data : "");
+    Serial.printf("ws[%s][%u] pong[%u]: %s\n", ws->url(), wsClient->id(), len, (len) ? (char *)data : "");
   }
   else if (type == WS_EVT_DATA)
   // TODO:  Must include code to repaint index.html for new device and function
@@ -159,17 +161,23 @@ void onWsEvent(AsyncWebSocket *ws, AsyncWebSocketClient *client, AwsEventType ty
       msg[info->len] = '\0';
     }
     // Serial.printf("msg = %s\n", msg);
+    //  change msg to cvs
     char *token;
     token = strtok(msg, ",");
     strcpy(deviceBuf, token);
     token = strtok(NULL, ",");
     strcpy(functionBuf, token);
-
     if (info->opcode == WS_TEXT)
     {
       sprintf(msg, "device is %s and function is %s",
               deviceBuf, functionBuf);
-      client->text(msg);
+      // wsClient->printf(msg);  // send message to browser
+      File f = LittleFS.open("/report.html", "r");
+      String s = f.readString();
+      // int str_len = s.length() + 1;
+      // char char_array[str_len];
+      // s.toCharArray(char_array, str_len);
+      wsClient->printf(s.c_str());
     }
   }
 }
@@ -234,6 +242,7 @@ void loop()
     // output(mySwitch.getReceivedValue(), mySwitch.getReceivedBitlength(), mySwitch.getReceivedDelay(), mySwitch.getReceivedRawdata(), mySwitch.getReceivedProtocol());
 
     // TODO:  mqtt device, function and code
+    Serial.println("Enter mySwitch (interrupt)");
     char recvValueBuf[100];
     sprintf(recvValueBuf, "%u", mySwitch.getReceivedValue()); // decimal value
     Serial.print("In mySwitch value of deviceBuf:  ");
@@ -251,11 +260,13 @@ void loop()
     Serial.println(msgBuf);
     // Serial.println(msg);
     client.publish("rc/read", msgBuf);
-
     // TODO: must find how to send to client
-    // request->send(LittleFS, "/index.html", String(), false, processor);
-
+    // wsClientGlobal->printf(msgBuf);
+    File f = LittleFS.open("/form.html", "r");
+    String s = f.readString();
     mySwitch.resetAvailable();
+    wsClientGlobal->printf(s.c_str());
+
   }
 
   //   if (millis() - lastTime >= 1000)
